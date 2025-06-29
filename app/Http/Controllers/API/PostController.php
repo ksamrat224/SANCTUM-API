@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
+use App\Models\Post;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class PostController extends Controller
 {
@@ -12,7 +14,12 @@ class PostController extends Controller
      */
     public function index()
     {
-        //
+    $data['posts']=Post::all();
+    return response()->json([
+        'status' => true,
+        'message' => 'Posts retrieved successfully',
+        'data' => $data,
+    ], 200);
     }
 
     /**
@@ -20,7 +27,35 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        //
+         $validateUser = Validator::make(
+        $request->all(),
+        [
+            'title' => 'required',
+            'description' => 'required',
+            'image' => 'required|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]
+      );
+      if ($validateUser->fails()) {
+          return response()->json([
+              'status' => false,
+              'message' => 'Validation Error',
+              'errors' => $validateUser->errors()->all(),
+          ], 401);
+      }
+      $img=$request->image;
+      $ext=$img->getClientOriginalExtension();
+      $imageName = time().'.'.$ext;
+      $img->move(public_path().'/uploads',$imageName);
+      $user= Post::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'image' => $imageName,
+      ]);
+        return response()->json([
+            'status' => true,
+            'message' => 'User created successfully',
+            'user' => $user,
+        ], 200);
     }
 
     /**
@@ -28,7 +63,18 @@ class PostController extends Controller
      */
     public function show(string $id)
     {
-        //
+       $data['post'] = Post::select(
+       'id',
+         'title',
+            'description',
+            'image',
+       )-> where(['id'=>$id])->get();
+
+       return response()->json([
+            'status' => true,
+            'message' => 'Post retrieved successfully',
+            'data' => $data,
+        ], 200);
     }
 
     /**

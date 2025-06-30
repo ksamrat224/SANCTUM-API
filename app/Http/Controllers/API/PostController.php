@@ -131,8 +131,13 @@ class PostController extends Controller
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
-    {
+    {    $imagePath = Post::select('image')->where('id', $id)->get();
+        $filePath = public_path().'/uploads'.$post[0]['image'];
+        
+        unlink($filePath);
+
         $post = Post::where('id',$id)->delete();
+
         return response()->json([
             'status' => true,
             'message' => 'Your post have been removed',

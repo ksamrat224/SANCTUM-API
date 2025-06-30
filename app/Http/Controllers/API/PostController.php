@@ -64,10 +64,10 @@ class PostController extends Controller
     public function show(string $id)
     {
        $data['post'] = Post::select(
-       'id',
+         'id',
          'title',
-            'description',
-            'image',
+         'description',
+        'image',
        )-> where(['id'=>$id])->get();
 
        return response()->json([
@@ -82,7 +82,49 @@ class PostController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+         $validateUser = Validator::make(
+        $request->all(),
+        [
+            'title' => 'required',
+            'description' => 'required',
+            'image' => 'required|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]
+      );
+      if ($validateUser->fails()) {
+          return response()->json([
+              'status' => false,
+              'message' => 'Validation Error',
+              'errors' => $validateUser->errors()->all(),
+          ], 401);
+      }
+      $post= Post::select('id','image')->get();
+      if($request->image!=' '){
+         $path=public_path().'/uploads';
+         if($post->image!='' && $post->image!=null){
+             $old_file=$path.$post->image;
+             if(file_exists($old_file)){
+                    unlink($old_file);
+
+         }
+      }
+      $img=$request->image;
+      $ext=$img->getClientOriginalExtension();
+      $imageName = time().'.'.$ext;
+      $img->move(public_path().'/uploads',$imageName);
+    }else{
+        $imageName = $post->image;
+    }
+      
+      $post= Post::where(['id'=>$id])->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'image' => $imageName,
+      ]);
+        return response()->json([
+            'status' => true,
+            'message' => 'Post updated successfully',
+            'user' => $user,
+        ], 200);
     }
 
     /**

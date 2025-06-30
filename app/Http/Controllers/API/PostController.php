@@ -123,7 +123,7 @@ class PostController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Post updated successfully',
-            'user' => $user,
+            'post' => $post,
         ], 200);
     }
 
@@ -132,6 +132,11 @@ class PostController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $post = Post::where('id',$id)->delete();
+        return response()->json([
+            'status' => true,
+            'message' => 'Your post have been removed',
+            'post'=>$post
+        ], 200);
     }
 }

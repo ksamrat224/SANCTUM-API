@@ -97,11 +97,14 @@ class PostController extends Controller
               'errors' => $validateUser->errors()->all(),
           ], 401);
       }
-      $post= Post::select('id','image')->get();
+      $postImage= Post::select('id','image')->where('id'->$id)->get();
+      return $postImage[0]->image;
+
+
       if($request->image!=' '){
          $path=public_path().'/uploads';
-         if($post->image!='' && $post->image!=null){
-             $old_file=$path.$post->image;
+         if($postImage[0]->image!='' && $postImage[0]->image!=null){
+             $old_file=$path.$postImage[0]->image;
              if(file_exists($old_file)){
                     unlink($old_file);
 

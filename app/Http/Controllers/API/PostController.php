@@ -135,7 +135,7 @@ class PostController extends Controller
      */
     public function destroy(string $id)
     {    $imagePath = Post::select('image')->where('id', $id)->get();
-        $filePath = public_path().'/uploads'.$post[0]['image'];
+        $filePath = public_path().'/uploads/'.$post[0]['image'];
         
         unlink($filePath);
 

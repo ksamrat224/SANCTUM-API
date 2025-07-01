@@ -129,5 +129,6 @@ class PostController extends BaseController
             'message' => 'Your post has been removed',
             'post' => $post
         ], 200);
+        return $this->sendResponse($post, 'Post deleted successfully');
     }
 }

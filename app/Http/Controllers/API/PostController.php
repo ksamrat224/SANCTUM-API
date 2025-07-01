@@ -6,7 +6,7 @@ use App\Models\Post;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
-use App\Http\Controllers\API\BaseController;
+use App\Http\Controllers\API\BaseController as BaseController;
 
 class PostController extends BaseController
 {
@@ -15,12 +15,8 @@ class PostController extends BaseController
      */
     public function index()
     {
-    $data['posts']=Post::all();
-    return response()->json([
-        'status' => true,
-        'message' => 'Posts retrieved successfully',
-        'data' => $data,
-    ], 200);
+        $data['posts'] = Post::all();
+        return $this->sendResponse($data, 'Posts retrieved successfully');
     }
 
     /**
@@ -28,35 +24,31 @@ class PostController extends BaseController
      */
     public function store(Request $request)
     {
-         $validateUser = Validator::make(
-        $request->all(),
-        [
-            'title' => 'required',
-            'description' => 'required',
-            'image' => 'required|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]
-      );
-      if ($validateUser->fails()) {
-          return response()->json([
-              'status' => false,
-              'message' => 'Validation Error',
-              'errors' => $validateUser->errors()->all(),
-          ], 401);
-      }
-      $img=$request->image;
-      $ext=$img->getClientOriginalExtension();
-      $imageName = time().'.'.$ext;
-      $img->move(public_path().'/uploads',$imageName);
-      $user= Post::create([
+        $validateUser = Validator::make(
+            $request->all(),
+            [
+                'title' => 'required',
+                'description' => 'required',
+                'image' => 'required|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            ]
+        );
+
+        if ($validateUser->fails()) {
+            return $this->sendError('Validation Error', $validateUser->errors()->all());
+        }
+
+        $img = $request->file('image');
+        $ext = $img->getClientOriginalExtension();
+        $imageName = time() . '.' . $ext;
+        $img->move(public_path('uploads'), $imageName);
+
+        $post = Post::create([
             'title' => $request->title,
             'description' => $request->description,
             'image' => $imageName,
-      ]);
-        return response()->json([
-            'status' => true,
-            'message' => 'User created successfully',
-            'user' => $user,
-        ], 200);
+        ]);
+
+        return $this->sendResponse($post, 'Post created successfully');
     }
 
     /**
@@ -64,18 +56,14 @@ class PostController extends BaseController
      */
     public function show(string $id)
     {
-       $data['post'] = Post::select(
-         'id',
-         'title',
-         'description',
-        'image',
-       )-> where(['id'=>$id])->get();
+        $data['post'] = Post::select(
+            'id',
+            'title',
+            'description',
+            'image'
+        )->where('id', $id)->first();
 
-       return response()->json([
-            'status' => true,
-            'message' => 'Post retrieved successfully',
-            'data' => $data,
-        ], 200);
+        return $this->sendResponse($data, 'Post retrieved successfully');
     }
 
     /**
@@ -83,69 +71,63 @@ class PostController extends BaseController
      */
     public function update(Request $request, string $id)
     {
-         $validateUser = Validator::make(
-        $request->all(),
-        [
-            'title' => 'required',
-            'description' => 'required',
-            'image' => 'required|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]
-      );
-      if ($validateUser->fails()) {
-          return response()->json([
-              'status' => false,
-              'message' => 'Validation Error',
-              'errors' => $validateUser->errors()->all(),
-          ], 401);
-      }
-      $postImage= Post::select('id','image')->where('id'->$id)->get();
-      return $postImage[0]->image;
+        $validateUser = Validator::make(
+            $request->all(),
+            [
+                'title' => 'required',
+                'description' => 'required',
+                'image' => 'sometimes|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            ]
+        );
 
+        if ($validateUser->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation Error',
+                'errors' => $validateUser->errors()->all(),
+            ], 401);
+        }
 
-      if($request->image!=' '){
-         $path=public_path().'/uploads';
-         if($postImage[0]->image!='' && $postImage[0]->image!=null){
-             $old_file=$path.$postImage[0]->image;
-             if(file_exists($old_file)){
-                    unlink($old_file);
-
-         }
-      }
-      $img=$request->image;
-      $ext=$img->getClientOriginalExtension();
-      $imageName = time().'.'.$ext;
-      $img->move(public_path().'/uploads',$imageName);
-    }else{
+        $post = Post::findOrFail($id);
         $imageName = $post->image;
-    }
-      
-      $post= Post::where(['id'=>$id])->update([
+
+        if ($request->hasFile('image')) {
+            $path = public_path('uploads');
+            if ($post->image && file_exists($path . '/' . $post->image)) {
+                unlink($path . '/' . $post->image);
+            }
+            $img = $request->file('image');
+            $ext = $img->getClientOriginalExtension();
+            $imageName = time() . '.' . $ext;
+            $img->move($path, $imageName);
+        }
+
+        $post->update([
             'title' => $request->title,
             'description' => $request->description,
             'image' => $imageName,
-      ]);
-        return response()->json([
-            'status' => true,
-            'message' => 'Post updated successfully',
-            'post' => $post,
-        ], 200);
+        ]);
+
+        return $this->sendResponse($post, 'Post updated successfully');
     }
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
-    {    $imagePath = Post::select('image')->where('id', $id)->get();
-        $filePath = public_path().'/uploads/'.$post[0]['image'];
-        
-        unlink($filePath);
+    {
+        $post = Post::findOrFail($id);
+        $filePath = public_path('uploads/' . $post->image);
+        if ($post->image && file_exists($filePath)) {
+            unlink($filePath);
+        }
 
-        $post = Post::where('id',$id)->delete();
+        $post->delete();
 
         return response()->json([
             'status' => true,
-            'message' => 'Your post have been removed',
-            'post'=>$post
+            'message' => 'Your post has been removed',
+            'post' => $post
         ], 200);
     }
 }
